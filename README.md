@@ -33,6 +33,7 @@ Developers spend **60% of their time** reading and reviewing code. **RepoSage** 
 - [🏗️ Architecture](#️-architecture)
 - [🛠️ Tech Stack](#️-tech-stack)
 - [⚡ Quick Start](#-quick-start)
+- [🔐 Environment Variables](#-environment-variables)
 - [🤖 GitHub Action Integration](#-github-action-integration)
 - [📊 API Reference](#-api-reference)
 - [🗺️ Roadmap](#️-roadmap)
@@ -171,7 +172,10 @@ The project is split into **four independent modules**:
 | **Backend** | ![Node.js](https://img.shields.io/badge/Node.js-339933?style=flat-square&logo=nodedotjs&logoColor=white) ![Express](https://img.shields.io/badge/Express-000000?style=flat-square&logo=express&logoColor=white) ![REST API](https://img.shields.io/badge/REST_API-005571?style=flat-square) |
 | **AI Engine** | ![Python](https://img.shields.io/badge/Python-3776AB?style=flat-square&logo=python&logoColor=white) ![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white) ![Groq](https://img.shields.io/badge/Groq_API-FF6B35?style=flat-square) |
 | **AI Models** | ![Llama](https://img.shields.io/badge/Llama_3-0467DF?style=flat-square&logo=meta&logoColor=white) ![DeepSeek](https://img.shields.io/badge/DeepSeek-4A90D9?style=flat-square) ![Gemma](https://img.shields.io/badge/Google_Gemma-4285F4?style=flat-square&logo=google&logoColor=white) |
+| **Persistence (optional)** | ![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=flat-square&logo=mongodb&logoColor=white) ![Redis](https://img.shields.io/badge/Redis-DC382D?style=flat-square&logo=redis&logoColor=white) |
 | **DevOps** | ![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-2088FF?style=flat-square&logo=githubactions&logoColor=white) ![Git](https://img.shields.io/badge/Git-F05032?style=flat-square&logo=git&logoColor=white) |
+
+> ℹ️ MongoDB (via Mongoose) and Redis are **optional**. Without them the backend runs in **degraded mode**: it still analyzes repos normally, but audit history / analytics won't persist across restarts, and rate-limiting falls back to in-memory storage. See [Environment Variables](#-environment-variables) below.
 
 </div>
 
@@ -205,7 +209,12 @@ cd ai-code-reviewer
 ```bash
 cd backend
 npm install
-cp .env.example .env    # Add your GROQ_API_KEY
+cp .env.example .env
+```
+
+Then open `.env` and fill in the required values — see the [Environment Variables](#-environment-variables) table below. **At minimum**, set `GROQ_API_KEY` and generate a random `SESSION_SECRET` (it must be different from `REPOSAGE_API_KEY`, or the server will refuse to start).
+
+```bash
 npm run dev              # Starts on http://localhost:5000
 ```
 
@@ -238,6 +247,27 @@ npm run dev
 
 ---
 
+
+## 🔐 Environment Variables
+
+`backend/.env.example` ships with more variables than the Quick Start above covers. Here's what each one actually does, so nothing surprises you at startup.
+
+| Variable | Required? | Purpose |
+|---|---|---|
+| `GROQ_API_KEY` | ✅ Required | Powers AI code review, README generation, and repo chat. Get one from [console.groq.com/keys](https://console.groq.com/keys). |
+| `SESSION_SECRET` | ✅ Required | Signs session cookies. **The server calls `process.exit(1)` at startup if this is unset, or if it's identical to `REPOSAGE_API_KEY`.** Generate a unique random string. |
+| `REPOSAGE_API_KEY` | ✅ Required | Internal API key used between frontend/backend requests. Must differ from `SESSION_SECRET`. |
+| `AI_ENGINE_API_KEY` | ✅ Required | Shared secret the backend uses to authenticate with the Python AI Engine (`ai-engine/app.py` rejects unauthenticated requests). |
+| `AI_ENGINE_URL` | Recommended | URL of the running AI Engine, default `http://localhost:8000`. |
+| `PORT` | Optional | Backend port, default `5000`. |
+| `ALLOWED_ORIGINS` | Optional | Comma-separated CORS allowlist, default covers local dev ports. |
+| `GIT_CLONE_TIMEOUT` / `MAX_REPO_SIZE_MB` | Optional | Guardrails for repo cloning. |
+| `GITHUB_PAT` / `WEBHOOK_SECRET` | Optional | Only needed for GitHub Action / webhook-related features. |
+| `MONGODB_URI` | Optional | Enables persistent audit history and analytics. Without it, the backend runs in **degraded mode** — fully functional, but history resets on restart. |
+| `TRUST_PROXY` | Optional | Set to `false` for plain local dev without a reverse proxy; defaults to `true` so rate-limiting sees the real client IP behind a proxy. |
+| `REDIS_URL` | Optional | If set, rate-limiting uses Redis instead of in-memory storage — useful for multi-instance deployments. |
+
+---
 
 ## 🤖 GitHub Action Integration
 
@@ -370,3 +400,4 @@ This project is licensed under the **MIT License** — see the [LICENSE](LICENSE
 _RepoSage — Making code review smarter, one repository at a time._
 
 </div>
+
